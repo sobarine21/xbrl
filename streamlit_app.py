@@ -42,7 +42,7 @@ def extract_text_from_excel(uploaded_file):
 
 def generate_xbrl_with_gemini(input_text):
     configure(api_key=GEMINI_API_KEY)
-    model = GenerativeModel('gemini-1.5-pro-latest')
+    model = GenerativeModel('gemini-2.5-flash')
     prompt = (
         "You are an expert in financial data and XBRL conversion. "
         "Convert the following data into valid XBRL XML format. "
