@@ -5,7 +5,8 @@ import os
 import base64
 
 from google import genai
-from google.genai import types
+from google.generativeai import configure
+from google.generativeai import GenerativeModel
 
 # --- Load Gemini API Key from Streamlit Secrets ---
 GEMINI_API_KEY = st.secrets["GEMINI_API"]
@@ -40,8 +41,8 @@ def extract_text_from_excel(uploaded_file):
         return ""
 
 def generate_xbrl_with_gemini(input_text):
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    model = "gemini-2.5-flash"
+    configure(api_key=GEMINI_API_KEY)
+    model = GenerativeModel('gemini-1.5-pro-latest')
     prompt = (
         "You are an expert in financial data and XBRL conversion. "
         "Convert the following data into valid XBRL XML format. "
@@ -50,28 +51,12 @@ def generate_xbrl_with_gemini(input_text):
         "Output only the XBRL XML. Here is the input:\n\n"
         f"{input_text}"
     )
-    contents = [
-        types.Content(
-            role="user",
-            parts=[
-                types.Part.from_text(prompt)
-            ],
-        ),
-    ]
-    generate_content_config = types.GenerateContentConfig(
-        thinking_config=types.ThinkingConfig(
-            thinking_budget=-1,
-        ),
-    )
-    chunks = []
-    for chunk in client.models.generate_content_stream(
-        model=model,
-        contents=contents,
-        config=generate_content_config,
-    ):
-        if chunk.text:
-            chunks.append(chunk.text)
-    return "".join(chunks)
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        st.error(f"Error during XBRL generation: {e}")
+        return None
 
 def download_button(xml_content, filename):
     b64 = base64.b64encode(xml_content.encode()).decode()
@@ -110,9 +95,10 @@ if uploaded_file:
             with st.spinner("Converting to XBRL using Gemini AI..."):
                 try:
                     xbrl_output = generate_xbrl_with_gemini(input_text)
-                    st.subheader("Generated XBRL")
-                    st.code(xbrl_output[:2000] + ("\n... (truncated)" if len(xbrl_output) > 2000 else ""), language="xml")
-                    download_button(xbrl_output, "converted_output.xbrl")
+                    if xbrl_output:
+                        st.subheader("Generated XBRL")
+                        st.code(xbrl_output[:2000] + ("\n... (truncated)" if len(xbrl_output) > 2000 else ""), language="xml")
+                        download_button(xbrl_output, "converted_output.xbrl")
                 except Exception as e:
                     st.error(f"Error during XBRL generation: {e}")
     else:
