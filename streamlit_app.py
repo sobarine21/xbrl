@@ -54,7 +54,7 @@ def generate_xbrl_with_gemini(input_text):
         types.Content(
             role="user",
             parts=[
-                types.Part.from_text(prompt),
+                types.Part.from_text(prompt)
             ],
         ),
     ]
